@@ -1,3 +1,58 @@
+
+# Generates a dataframe containing the SI units between yotta(Y) and yocto(y)
+create_si_prefixes_df <- function(){
+  
+  # yotta	Y	  1024	1000000000000000000000000	
+  # zetta	Z	  1021	1000000000000000000000
+  # exa	  E	  1018	1000000000000000000
+  # peta	P	  1015	1000000000000000
+  # tera	T	  1012	1000000000000	
+  # giga	G	  109	  1000000000
+  # mega	M	  106	  1000000	
+  # kilo	k	  103	  1000	
+  # hecto	h	  102	  100
+  # deca	da	101	  10
+  # -------------------------------------------- #
+  # deci	d	  10−1	0.1	
+  # centi	c	  10−2	0.01
+  # milli	m	  10−3	0.001
+  # micro	μ	  10−6	0.000001	
+  # nano	n	  10−9	0.000000001	
+  # pico	p	  10−12	0.000000000001
+  # femto	f	  10−15	0.000000000000001	
+  # atto	a	  10−18	0.000000000000000001
+  # zepto	z	  10−21	0.000000000000000000001	
+  # yocto	y	  10−24	0.000000000000000000000001
+  
+  si_prefixes <- data.frame(prefix_name = c("yotta", "zetta", "exa", "peta", "tera",
+                                            "giga", "mega", "kilo", "hecto", "deca",
+                                            "deci", "centi", "milli", "micro", "nano",
+                                            "pico", "femto", "atto", "zepto", "yocto"),
+                            prefix_cs = c("Y", "Z", "E", "P", "T",
+                                          "G", "M", "k", "h", "da",
+                                          "d", "c", "m", "u", "n",
+                                          "p", "f", "a", "z", "y"),
+                            prefix_ci = c("YA", "ZA", "EX", "PT", "TR",
+                                          "GA", "MA", "K", "H", "DA",
+                                          "D", "C", "M", "U", "N",
+                                          "P", "F", "A", "ZO", "YO"),
+                            base_10 = c("10^24", "10^21", "10^18", "10^15", "10^12",
+                                        "10^9", "10^6", "10^3", "10^2", "10^1",
+                                        "10^-1", "10^-2", "10^-3", "10^-6", "10^-9",
+                                        "10^-12", "10^-15", "10^-18", "10^-21", "10^-24"),
+                            decimal = c(1000000000000000000000000, 1000000000000000000000,
+                                        1000000000000000000, 1000000000000000,
+                                        1000000000000, 1000000000, 1000000, 1000, 100, 10,
+                                        0.1, 0.01, 0.001, 0.000001, 0.000000001, 0.000000000001,
+                                        0.000000000000001, 0.000000000000000001,
+                                        0.000000000000000000001, 0.000000000000000000000001))
+  
+  return(si_prefixes)
+}
+
+
+
+
 # Checking whether the given unit exists inside the units_df table
 # and returning the found unit.
 
@@ -18,7 +73,15 @@ check_unit_existence <- function(unit, parsed_unit = TRUE){
     if(nrow(found_unit) < 1){
       
       if(isTRUE(parsed_unit)){
-        stop(paste("The unit does not exist: ", unit))
+        
+        found_unit <- process_si_prefixes(unit)
+        
+        if(nrow(found_unit) < 1){
+          stop(paste("The unit does not exist: ", unit))
+        }
+        else{
+          return(found_unit)
+        }
       }
       else{
         return(NULL)
@@ -26,14 +89,81 @@ check_unit_existence <- function(unit, parsed_unit = TRUE){
     }
     # return the found unit based on the ciCode_
     else{
+      # print(found_unit)
       return(found_unit)
     }
   }
   # return the found unit based on the csCode_
   else{
+    # print(found_unit)
     return(found_unit)
   }
 }
+
+
+process_si_prefixes <- function(unit){
+  
+  # Extracting the first character of the unit, which is assumed
+  # to be an SI prefix
+  unit_prefix <- substr(unit, start = 1, stop = 1)
+  
+  # Checking for a special SI condition where the SI prefix
+  # might be "da" (deca) or "d" (deci)
+  if(unit_prefix %in% c("d", "D", "Y", "Z", "E", "P", "T", "G", "M")){
+    unit_prefix2 <- substr(unit, start = 1, stop = 2)
+    
+    if(unit_prefix2 %in% c("da", "DA", "YA", "YO", "ZA", "ZO", "EX",
+                           "PT", "TR", "GA", "MA")){
+      unit_prefix <- unit_prefix2
+    }
+  }
+  
+  
+  # Extracting the raw unit (base unit)
+  if(unit_prefix %in% c("da", "DA", "YA", "YO", "ZA", "ZO", "EX",
+                        "PT", "TR", "GA", "MA")){
+    raw_unit <- substr(unit, start = 3, stop = nchar(unit))
+  }
+  else{
+    raw_unit <- substr(unit, start = 2, stop = nchar(unit))
+  }
+
+  # Checking if unit_prefix is a valid SI prefix based on case sensitivity
+  # Note: "quetta - Q", "ronna - R", "ronto - r", "quecto - q"
+  #       are not currently supported by UCUM (as of 25 March 2024)
+  si_prefix <- si_prefixes %>% filter(prefix_cs == unit_prefix)
+  
+  # No match found in case sensitive codes
+  if(nrow(si_prefix) < 1){
+    # Checking if unit_prefix is a valid SI prefix based on case insensitivity
+    si_prefix <- si_prefixes %>% filter(prefix_ci == unit_prefix)
+  }
+  
+  # If the prefix doesn't exist, then there must be something wrong with
+  # the given unit
+  if(isTRUE(nrow(si_prefix < 1))){
+    stop(paste("The unit does not exist: ", unit))
+  }
+  
+  # Check if the raw_unit exists
+  found_unit <- check_unit_existence(unit = raw_unit,
+                                     parsed_unit = TRUE)
+  
+  # print(si_prefix)
+  # print(found_unit)
+
+  prefix_magnitude <- si_prefix$decimal
+  unit_magnitude <- found_unit$magnitude_
+  
+  new_magnitude <- prefix_magnitude * unit_magnitude
+  
+  found_unit$csCode_ <- unit
+  found_unit$ciCode_ <- unit
+  found_unit$magnitude_ <- new_magnitude
+  
+  return(found_unit)
+}
+
 
 
 
@@ -717,13 +847,13 @@ processExponents <- function(uStr){
   
   # Checking that the two strings are the same
   if(as.character(paste(result, collapse = "")) != uStr){
-    print("String mismatch!")
-    print("=== DEBUG ===")
-    print(as.character(paste(result, collapse = "")))
-    print(uStr)
-    print(exponent_matches)
-    print(remaining_string)
-    print(result)
+    # print("String mismatch!")
+    # print("=== DEBUG ===")
+    # print(as.character(paste(result, collapse = "")))
+    # print(uStr)
+    # print(exponent_matches)
+    # print(remaining_string)
+    # print(result)
     stop("String mismatch!")
   }
   else{

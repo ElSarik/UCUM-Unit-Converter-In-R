@@ -1,8 +1,8 @@
 # library(jsonlite)
 library(tidyverse)
 
-options(scipen = 999)
-
+# options(scipen = 999)
+# options(scipen = 0)
 
 rm(list=ls())
 
@@ -24,11 +24,13 @@ units_df <- units_df %>% select(csCode_, ciCode_, magnitude_, dim_, cnv_,
 cnv_units <- units_df %>% filter(!is.na(cnv_))
 arbitrary_units <- extractArbitrary(units_df)
 
+si_prefixes <- create_si_prefixes_df()
+
 # Specifying conversion units & values
-amount <- 12
-fromUnit <- "mg.%"
-toUnit <- "kg.%"
-molecularWeight <- 1.435
+amount <- 1
+fromUnit <- "mmol/L"
+toUnit <- "/L"
+molecularWeight <- 1
 
 
 
@@ -36,10 +38,16 @@ molecularWeight <- 1.435
 convert(fromNum = amount, 
         fromUnit = fromUnit, 
         toUnit = toUnit,
-        molecularWeight = molecularWeight)
+        molecularWeight = molecularWeight,
+        ignore_arbitrary = TRUE # When "TRUE" the arbitrary check is being ignored
+        )
 
 
+# fromUnit <- "[hp_X]"
+# toUnit <- "[hp_X]"
 
+# fromUnit <- "mmol/L"
+# toUnit <- "/L"
 
 # fromUnit <- "13.mg/dL3"
 # toUnit <- "7.mmol2/L3"
