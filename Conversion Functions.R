@@ -3,7 +3,8 @@
 ####          Conversion Function            ####
 #===============================================#
 
-convert <- function(fromNum, fromUnit, toUnit, molecularWeight){
+convert <- function(fromNum, fromUnit, toUnit, molecularWeight, 
+                    ignore_arbitrary = FALSE){
   
   # Checking if fromNum is not numeric
   if(!is.numeric(fromNum)){
@@ -67,13 +68,16 @@ convert <- function(fromNum, fromUnit, toUnit, molecularWeight){
   # print(toDimension_)
   
   
-  
-  # Checking if we are converting from/to arbitrary units
-  if(isTRUE(toIsArbitrary_)){
-    stop(paste0("Attempt to convert to arbitrary unit ", toCsCode_))
-  }
-  if(isTRUE(fromIsArbitrary_)){
-    stop(paste0("Attempt to convert arbitrary unit ", fromCsCode_))
+  # If `ignore_arbitrary` is TRUE, avoid performing the arbitrary unit check
+  # and proceed with the conversion as if the units are not arbitrary
+  if(!isTRUE(ignore_arbitrary)){
+    # Checking if we are converting from/to arbitrary units
+    if(isTRUE(toIsArbitrary_)){
+      stop(paste0("Attempt to convert to arbitrary unit ", toCsCode_))
+    }
+    if(isTRUE(fromIsArbitrary_)){
+      stop(paste0("Attempt to convert arbitrary unit ", fromCsCode_))
+    }
   }
   
   # Checking whether the given units are Mole-To-Mass commensurable
